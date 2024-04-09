@@ -1,27 +1,28 @@
 import React,{useCallback, useEffect} from 'react'
-import {Button,Input,RTE,Select,} from '../index'
+import {Button,Input,RTE,Select,} from '..'
 import { service } from '../../appwrite/configuration'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 function PostForm({post}) {
-  const {register,handleSubmit,control,watch,setValue,getValues} = useForm({
+  const {register,handleSubmit,watch,setValue,control,getValues} = useForm({
     defaultValues:{
-      title:'' || post?.title,
-      content:'' || post?.content,
-      slug:'' || post?.slug,
-      status:'active' || post?.status,
+      title: post?.title || "",
+      slug: post?.$id || "",
+      Content: post?.Content || "",
+      status: post?.status || "active",
     }
   })
 
   const navigate = useNavigate()
   const user = useSelector(state=>state.auth.userData)
-  
+
   const submit=async(data)=>{
+    console.log(data);
     if(post){
-      const file=data.image[0] ? service.uploadFile(data.image[0]) : null;
+      const file=data.image[0] ? await service.uploadFile(data.image[0]) : null;
       if(file){
-        service.deleteFile(post.image)
+        await service.deleteFile(post.image)
       }
       const dbPost=await service.updatePost(post.$id,{...data,image:file ? file.$id : undefined},);
 
@@ -30,18 +31,22 @@ function PostForm({post}) {
       }
     }
     else{
-      const file= data.image[0] ? service.uploadFile(data.image[0]) : null;
+      const file=await service.uploadFile(data.image[0]);
+      console.log(file);
       if(file){
         const fileId=file.$id;
         data.image=fileId;
-        await service.createPost({...data,userId:user.$id})
-
+        const dbPost = await service.createPost({ ...data, userId: user.$id });
+                if (dbPost) {
+                    navigate(`/post/${dbPost.$id}`);
       }
     }
   }
+}
   const slugTransform=useCallback((value)=>{
-    if(value){
-      return value.trim().toLowerCase().replace( /^[a-zA-Z\d\s]+/g,'-').replace(/\s/g,'-');
+    if(value && typeof value==="string"){
+      // return value.trim().toLowerCase().replace(/^[a-zA-Z\d\s]+/g,"-").replace(/\s/g,"-");
+      return value.trim().toLowerCase().replace(/\s+/g, '-');
     }
     return '';
   },[])
@@ -49,15 +54,14 @@ function PostForm({post}) {
   useEffect(()=>{
     const subscription=watch((value,{name})=>{
       if(name==='title'){
-        setValue('slug',slugTransform(value.title,{shouldValidate:true}))
+        setValue('slug',slugTransform(value.title),{shouldValidate:true})
       }
-    })
-    return ()=>{
-      subscription.unsubscribe()
-    }
-  },[watch,slug,setValue])
+    });
+    return () => subscription.unsubscribe()
+  },[watch,slugTransform,setValue])
 
   return (
+    <>
     <form onSubmit={handleSubmit(submit)} className="flex flex-wrap">
             <div className="w-2/3 px-2">
                 <Input
@@ -75,7 +79,9 @@ function PostForm({post}) {
                         setValue("slug", slugTransform(e.currentTarget.value), { shouldValidate: true });
                     }}
                 />
-                <RTE label="Content :" name="content" control={control} defaultValue={getValues("content")} />
+                <div className=''> 
+                <RTE label="Content :" name="Content" control={control} defaultValue={getValues("Content")} />
+                </div>
             </div>
             <div className="w-1/3 px-2">
                 <Input
@@ -83,7 +89,7 @@ function PostForm({post}) {
                     type="file"
                     className="mb-4"
                     accept="image/png, image/jpg, image/jpeg, image/gif"
-                    {...register("image", { required: !post })}
+                    {...register("image",)}
                 />
                 {post && (
                     <div className="w-full mb-4">
@@ -105,7 +111,7 @@ function PostForm({post}) {
                 </Button>
             </div>
         </form>
+      </>
   )
 }
-
 export default PostForm

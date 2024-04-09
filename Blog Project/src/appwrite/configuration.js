@@ -1,6 +1,6 @@
 import config from "../conf/config.js";
 
-import {Client,Account,ID,Databases,Storage,Query} from "appwrite";
+import {Client,ID,Databases,Storage,Query} from "appwrite";
 
 export class Service{
     client=new Client();
@@ -15,11 +15,11 @@ export class Service{
         this.bucket=new Storage(this.client);
     }
 
-    async createPost({title,slug,content,image,status,userId,}){
+    async createPost({title,slug,Content,image,status,userId,}){
         try {
             return await this.databases.createDocument(config.appwriteDatabaseId,config.appwriteCollectionId,slug,{
                 title,
-                content,
+                Content,
                 image,
                 status,
                 userId,
@@ -29,11 +29,11 @@ export class Service{
         }
     }
 
-    async updatePost(slug,{title,content,image,status}){
+    async updatePost(slug,{title,Content,image,status}){
         try {
             return await this.databases.updateDocument(config.appwriteDatabaseId,config.appwriteCollectionId,slug,{
                 title,
-                content,
+                Content,
                 image,
                 status
             })
@@ -59,12 +59,15 @@ export class Service{
         }
     }
 
-    async getAllPost(queries=[Query.equal("status","active")]){
+    async getAllPost(queries=[Query.equal("status", "active")]){
         try {
+            console.log("Query:", queries); // Log the constructed query
            return await this.databases.listDocuments(config.appwriteDatabaseId,config.appwriteCollectionId,queries)
         } catch (error) {
-            throw error;
+            console.error("Error in getAllPost:", error.message);
+            throw error; // Rethrowing is fine, but now you've also logged it.
         }
+        
     }
 
     async uploadFile(file){
@@ -85,6 +88,7 @@ export class Service{
     }
 
     async filePreview(fileId){
+        console.log(fileId);
        try {
         return this.bucket.getFilePreview(config.appwriteBucketId,fileId);
        } catch (error) {

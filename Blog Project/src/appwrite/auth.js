@@ -17,7 +17,7 @@ export class AuthService{
         try {
             const userAccount=await this.account.create(ID.unique(),email,password,name);
             if(userAccount){
-                return this.login(email,password);
+                return this.login({email,password});
             }else{
                 return userAccount;
             }
@@ -36,7 +36,9 @@ export class AuthService{
 
     async getCurrentUser(){
         try {
-            return await this.account.get();
+            const userData=await this.account.get();
+            console.log(userData);
+            return userData;
         } catch (error) {
             console.log("Appwrite serive :: getCurrentUser :: error", error);
         }
